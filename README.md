@@ -35,6 +35,8 @@ ENCRYPTION_TOKEN=<YOUR_ENCRYPTION_TOKEN> ruby app.rb
 
 then go to [http://localhost:4567/](http://localhost:4567/) where you should see the checkout form.
 
+### Easy Encryption
+
 Enter dummy data (4111111111111111 as the credit card number, 737 as the CVC and 08/2018 as the expiry date) and complete the checkout process.
 
 This will:
@@ -44,3 +46,18 @@ This will:
 * Add a default payment method on this account associated with this contract
 * Create a new subscription for the sports car monthly plan (with a $10 30-days trial)
 * Charge the card for $10
+
+### HPP
+
+Go to the Hosted Payment Page (HPP) to complete the checkout process.
+
+This will:
+
+* Create a new Kill Bill account
+* Set the account in manual pay mode (i.e. recurring payments are not possible)
+* Add a default payment method on this account
+* Create a new subscription for the sports car monthly plan (with a $10 30-days trial)
+* Redirect the user to Adyen
+* Upon redirection from Adyen, record the $10 payment against the generated invoice
+
+Note: the types of payment methods available on Adyen's HPP depend on your configured skins.

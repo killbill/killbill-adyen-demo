@@ -30,6 +30,7 @@ def create_kb_account(user, reason, comment, options)
   account.create(user, reason, comment, options)
 end
 
+# Credit card auth creating a recurring contract
 def auth(account, encrypted_json, user, reason, comment, options)
   # Adyen contract
   contract_prop = KillBillClient::Model::PluginPropertyAttributes.new
@@ -44,13 +45,53 @@ def auth(account, encrypted_json, user, reason, comment, options)
   transaction = KillBillClient::Model::Transaction.new
   transaction.amount = 1
   transaction.currency = 'USD'
-  transaction.auth(account.account_id, nil, user, reason, comment, options.dup.merge( {:pluginProperty => [ contract_prop, ee_prop ]} ))
+  transaction.auth(account.account_id, nil, user, reason, comment, options.dup.merge({:pluginProperty => [contract_prop, ee_prop]}))
 end
 
 def void(payment, user, reason, comment, options)
   transaction = KillBillClient::Model::Transaction.new
   transaction.payment_id = payment.payment_id
   transaction.void(user, reason, comment, options)
+end
+
+# HPP redirect url builder
+def build_form_descriptor(account, invoice, user, reason, comment, options)
+  hpp = KillBillClient::Model::HostedPaymentPage.new
+  hpp.form_fields = []
+
+  {
+      :amount => 10,
+      :currency => 'USD',
+      :serverUrl => "http://#{settings.bind}:#{settings.port}",
+      :resultUrl => "/charge/complete?kbAccountId=#{account.account_id}&kbInvoiceId=#{invoice.invoice_id}"
+  }.each do |key, value|
+    field = KillBillClient::Model::PluginPropertyAttributes.new
+    field.key = key.to_s
+    field.value = value
+    hpp.form_fields << field
+  end
+
+  descriptor = hpp.build_form_descriptor(account.account_id, nil, user, reason, comment, options)
+  descriptor.form_url + '?' + descriptor.form_fields.map { |k, v| [CGI.escape(k.to_s), '=', CGI.escape(v.to_s)] }.map(&:join).join('&')
+end
+
+# Record a payment post HPP redirect
+def pay_invoice(account_id, invoice_id, adyen_params, user, reason, comment, options)
+  params = adyen_params.dup.merge({:fromHPP => true})
+
+  props = []
+  params.each do |key, value|
+    field = KillBillClient::Model::PluginPropertyAttributes.new
+    field.key = key.to_s
+    field.value = value
+    props << field
+  end
+
+  payment = KillBillClient::Model::InvoicePayment.new
+  payment.account_id = account_id
+  payment.target_invoice_id = invoice_id
+  payment.purchased_amount = 10
+  payment.create(payment, user, reason, comment, options.dup.merge({:pluginProperty => props}))
 end
 
 def create_kb_payment_method(account, encrypted_json, user, reason, comment, options)
@@ -61,6 +102,8 @@ def create_kb_payment_method(account, encrypted_json, user, reason, comment, opt
   pm.plugin_info = {}
   pm.create(true, user, reason, comment, options)
 
+  return if encrypted_json.nil?
+
   # $1 verification (auth/void)
   payment = auth(account, encrypted_json, user, reason, comment, options)
   void(payment, user, reason, comment, options)
@@ -69,7 +112,7 @@ def create_kb_payment_method(account, encrypted_json, user, reason, comment, opt
   KillBillClient::Model::PaymentMethod.refresh(account.account_id, user, reason, comment, options)
 end
 
-def create_subscription(account, user, reason, comment, options)
+def create_subscription(account, should_wait_for_payment, user, reason, comment, options)
   subscription = KillBillClient::Model::Subscription.new
   subscription.account_id = account.account_id
   subscription.product_name = 'Sports'
@@ -84,7 +127,7 @@ def create_subscription(account, user, reason, comment, options)
   override_trial.fixed_price = 10.0
   subscription.price_overrides << override_trial
 
-  subscription.create(user, reason, comment, nil, true, options)
+  subscription.create(user, reason, comment, nil, should_wait_for_payment, options)
 end
 
 #
@@ -99,14 +142,42 @@ post '/charge' do
   # Create an account
   account = create_kb_account(user, reason, comment, options)
 
+  encrypted_cc = params['adyen-encrypted-data']
+  is_manual_pay = encrypted_cc.nil?
+  if is_manual_pay
+    # Tell Kill Bill not to attempt to auto-pay the invoices
+    account.set_manual_pay(user, reason, comment, options)
+  end
+
   # Add a payment method
-  create_kb_payment_method(account, params['adyen-encrypted-data'], user, reason, comment, options)
+  create_kb_payment_method(account, encrypted_cc, user, reason, comment, options)
 
   # Add a subscription
-  create_subscription(account, user, reason, comment, options)
+  create_subscription(account, !is_manual_pay, user, reason, comment, options)
 
   # Retrieve the invoice
   @invoice = account.invoices(true, options).first
+
+  if is_manual_pay
+    skin_url = build_form_descriptor(account, @invoice, user, reason, comment, options)
+    redirect to(skin_url)
+  else
+    # And the Adyen reference
+    transaction = @invoice.payments(false, true, 'NONE', options).first.transactions.first
+    @authorization = transaction.first_payment_reference_id
+
+    erb :charge
+  end
+end
+
+get '/charge/complete' do
+  # Record the payment for that invoice
+  account_id = params.delete('kbAccountId')
+  invoice_id = params.delete('kbInvoiceId')
+  pay_invoice(account_id, invoice_id, params, user, reason, comment, options)
+
+  # Retrieve the invoice
+  @invoice = KillBillClient::Model::Invoice.find_by_id_or_number(invoice_id, true, 'NONE', options)
 
   # And the Adyen reference
   transaction = @invoice.payments(false, true, 'NONE', options).first.transactions.first
@@ -141,20 +212,25 @@ __END__
     <div><label><span>CVC</span>&nbsp;<input type="text" size="4" maxlength="4" data-encrypted-name="cvc" /></label></div>
     <input type="hidden" value="<%= Time.now.iso8601 %>" data-encrypted-name="generationtime" />
     <input type="submit" value="Pay" />
-    <script src="https://test.adyen.com/hpp/cse/js/<%= settings.encryption_token %>.shtml"></script>
-    <script>
-      var form    = document.getElementById('adyen-encrypted-form');
-      var options = {};
-
-      adyen.createEncryptedForm(form, options);
-    </script>
   </form>
+  <br/>
+  <form action="/charge" method="post">
+    Or pay via <button name="hpp" value="hpp">HPP</button>
+  </form>
+  <script src="https://test.adyen.com/hpp/cse/js/<%= settings.encryption_token %>.shtml"></script>
+  <script>
+    var form    = document.getElementById('adyen-encrypted-form');
+    var options = {};
+    adyen.createEncryptedForm(form, options);
+  </script>
 
 @@charge
   <h2>Thanks! Here is your invoice:</h2>
-  <ul>
-    <% @invoice.items.each do |item| %>
-      <li><%= "subscription_id=#{item.subscription_id}, amount=#{item.amount}, phase=sports-monthly-trial, start_date=#{item.start_date}" %></li>
-    <% end %>
-  </ul>
+  <% unless @invoice.nil? %>
+    <ul>
+      <% @invoice.items.each do |item| %>
+        <li><%= "subscription_id=#{item.subscription_id}, amount=#{item.amount}, phase=sports-monthly-trial, start_date=#{item.start_date}" %></li>
+      <% end %>
+    </ul>
+  <% end %>
   You can verify the payment at <a href="<%= "https://ca-test.adyen.com/ca/ca/accounts/showTx.shtml?txType=Payment&pspReference=#{@authorization}" %>"><%= "https://ca-test.adyen.com/ca/ca/accounts/showTx.shtml?txType=Payment&pspReference=#{@authorization}" %></a>.
