@@ -1,7 +1,7 @@
 Kill Bill Adyen demo
 ====================
 
-This sample app shows you how to integrate Adyen Easy encryption feature with [Kill Bill subscriptions APIs](http://docs.killbill.io/0.16/userguide_subscription.html).
+This sample app shows you how to integrate Adyen with [Kill Bill subscriptions APIs](http://docs.killbill.io/0.16/userguide_subscription.html).
 
 Prerequisites
 -------------
