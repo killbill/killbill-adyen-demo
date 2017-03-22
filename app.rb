@@ -217,7 +217,7 @@ get '/charge/complete' do
   @invoice = KillBillClient::Model::Invoice.find_by_id_or_number(invoice_id, true, 'NONE', options)
 
   # And the Adyen reference
-  transaction = @invoice.payments(false, true, 'NONE', options).first.transactions.first
+  transaction = @invoice.payments(true, false, 'NONE', options).first.transactions.first
   @authorization = transaction.first_payment_reference_id
 
   erb :charge
