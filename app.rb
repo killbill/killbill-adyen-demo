@@ -41,6 +41,11 @@ def auth(account, encrypted_json, user, reason, comment, options)
   contract_prop.key = 'recurringType'
   contract_prop.value = 'RECURRING'
 
+  # Adyen contract authorization
+  contAuth_prop = KillBillClient::Model::PluginPropertyAttributes.new
+  contAuth_prop.key = 'contAuth'
+  contAuth_prop.value = 'false'
+
   # Adyen encrypted card data and timestamp
   ee_prop = KillBillClient::Model::PluginPropertyAttributes.new
   ee_prop.key = 'encryptedJson'
@@ -49,7 +54,7 @@ def auth(account, encrypted_json, user, reason, comment, options)
   transaction = KillBillClient::Model::Transaction.new
   transaction.amount = 1
   transaction.currency = 'USD'
-  transaction.auth(account.account_id, nil, user, reason, comment, options.dup.merge({:pluginProperty => [contract_prop, ee_prop]}))
+  transaction.auth(account.account_id, nil, user, reason, comment, options.dup.merge({:pluginProperty => [contract_prop, contAuth_prop, ee_prop]}))
 end
 
 def void(payment, user, reason, comment, options)
@@ -200,7 +205,7 @@ post '/charge' do
     redirect to(skin_url)
   else
     # And the Adyen reference
-    transaction = @invoice.payments(false, true, 'NONE', options).first.transactions.first
+    transaction = @invoice.payments(true, false, 'NONE', options).first.transactions.first
     @authorization = transaction.first_payment_reference_id
 
     erb :charge
