@@ -219,7 +219,7 @@ get '/charge/complete' do
   pay_invoice(account_id, invoice_id, params, user, reason, comment, options)
 
   # Retrieve the invoice
-  @invoice = KillBillClient::Model::Invoice.find_by_id_or_number(invoice_id, true, 'NONE', options)
+  @invoice = KillBillClient::Model::Invoice.find_by_id(invoice_id, true, 'NONE', options)
 
   # And the Adyen reference
   transaction = @invoice.payments(true, false, 'NONE', options).first.transactions.first
