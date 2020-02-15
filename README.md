@@ -22,7 +22,7 @@ gem install bundler
 bundle install
 ```
 
-This also assumes Kill Bill is [running locally](http://docs.killbill.io/0.16/getting_started.html) at 127.0.0.1:8080 with the [Adyen plugin](https://github.com/killbill/killbill-adyen-plugin) configured.
+This also assumes Kill Bill is [running locally](http://docs.killbill.io/latest/getting_started.html) at 127.0.0.1:8080 with the [Adyen plugin](https://github.com/killbill/killbill-adyen-plugin) configured.
 
 Run
 ---

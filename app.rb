@@ -3,17 +3,19 @@ require 'killbill_client'
 
 set :kb_url, ENV['KB_URL'] || 'http://127.0.0.1:8080'
 set :encryption_token, ENV['ENCRYPTION_TOKEN']
+set :admin_password, ENV['ADMIN_PWD'] || 'password'
 
 #
 # Kill Bill configuration and helpers
 #
 
 KillBillClient.url = settings.kb_url
+KillBillClient.disable_ssl_verification = true
 
 # Multi-tenancy and RBAC credentials
 options = {
     :username => 'admin',
-    :password => 'password',
+    :password => settings.admin_password,
     :api_key => 'bob',
     :api_secret => 'lazar'
 }
@@ -152,12 +154,12 @@ def create_subscription(account, should_wait_for_payment, user, reason, comment,
   subscription.price_overrides = []
 
   # For the demo to be interesting, override the trial price to be non-zero so we trigger a charge in Adyen
-  override_trial = KillBillClient::Model::PhasePriceOverrideAttributes.new
+  override_trial = KillBillClient::Model::PhasePriceAttributes.new
   override_trial.phase_type = 'TRIAL'
   override_trial.fixed_price = 10.0
   subscription.price_overrides << override_trial
 
-  subscription.create(user, reason, comment, nil, should_wait_for_payment, options)
+  subscription.create(user, reason, comment, nil, should_wait_for_payment, options.clone.merge( { :params => { :callCompletion => true, :callTimeoutSec => 20 } }))
 end
 
 #
@@ -193,7 +195,7 @@ post '/charge' do
   create_subscription(account, !is_manual_pay, user, reason, comment, options)
 
   # Retrieve the invoice
-  @invoice = account.invoices(true, options).first
+  @invoice = account.invoices(options).first
 
   if is_manual_pay
     brand_code = nil
@@ -219,7 +221,7 @@ get '/charge/complete' do
   pay_invoice(account_id, invoice_id, params, user, reason, comment, options)
 
   # Retrieve the invoice
-  @invoice = KillBillClient::Model::Invoice.find_by_id(invoice_id, true, 'NONE', options)
+  @invoice = KillBillClient::Model::Invoice.find_by_id(invoice_id, 'NONE', options)
 
   # And the Adyen reference
   transaction = @invoice.payments(true, false, 'NONE', options).first.transactions.first
