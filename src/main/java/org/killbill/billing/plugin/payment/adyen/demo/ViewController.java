@@ -1,4 +1,4 @@
-package com.wovenware.adyentestui;
+package org.killbill.billing.plugin.payment.adyen.demo;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;

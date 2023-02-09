@@ -1,4 +1,4 @@
-package com.wovenware.adyentestui;
+package org.killbill.billing.plugin.payment.adyen.demo;
 
 import lombok.Getter;
 import lombok.Setter;

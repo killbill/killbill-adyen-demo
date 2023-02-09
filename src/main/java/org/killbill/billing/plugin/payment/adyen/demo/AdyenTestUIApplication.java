@@ -1,4 +1,4 @@
-package com.wovenware.adyentestui;
+package org.killbill.billing.plugin.payment.adyen.demo;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

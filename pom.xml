@@ -9,11 +9,11 @@
 		<version>2.6.6</version>
 		<relativePath /> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.wovenware</groupId>
-	<artifactId>adyentestui</artifactId>
+	<groupId>org.kill-bill.billing.plugin.java</groupId>
+	<artifactId>killbill-adyen-demo</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>Adyen</name>
-	<description>Test project for Adyen UI</description>
+	<description>Demo for Kill Bill Adyen Plugin</description>
 	<properties>
 		<java.version>11</java.version>
 	</properties>
