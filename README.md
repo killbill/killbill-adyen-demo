@@ -13,7 +13,9 @@ Prerequisites
 Set up
 ------
 
-Update  `application.properties` with your Adyen credentials.
+1. Obtain Adyen credentials as explained [here](https://github.com/killbill/killbill-adyen-plugin/tree/new-adyen-staging#configuration) and set the corresponding values in the `application.properties` file.
+2. Obtain a client key as explained [here](https://docs.adyen.com/development-resources/client-side-authentication#get-your-client-key) and set it in the `application.properties` file.
+3. Add the demo URL (`http://localhost:8084/`) as an allowed origin in Adyen as explained [here](https://docs.adyen.com/development-resources/client-side-authentication#manage-allowed-origins).
 
 
 Run
@@ -27,6 +29,18 @@ mvn spring-boot:run
 Test 
 ----
 
-Go to [http://localhost:8084/](http://localhost:8084/) where you should see a box where the amount of the payment need to be input.
+1. Go to [http://localhost:8084/](http://localhost:8084/).
+2. Enter amount as `20` and click **Checkout**:
+![Screen 1](./screen1.png)
+3. Enter the following card details and click **Pay** (See [Adyen Test Card Numbers](https://docs.adyen.com/development-resources/testing/test-card-numbers)):
+  * Card Number: 5100 0600 0000 0002
+  * Expiry Date: 12/29
+  * CVV: 737
+  * Name on card: John Doe
+![Screen 2](./screen2.png)
+4. This should display a successful payment page:
+![Screen 3](./screen3.png)
 
-After that a drop-in will show up.
+Credits
+----
+Code originally developed by [Wovenware](https://www.wovenware.com/).
