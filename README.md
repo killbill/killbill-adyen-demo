@@ -40,3 +40,7 @@ Test
 ![Screen 2](./screen2.png)
 4. This should display a successful payment page:
 ![Screen 3](./screen3.png)
+
+Credits
+----
+Code originally developed by [Wovenware](https://www.wovenware.com/).
