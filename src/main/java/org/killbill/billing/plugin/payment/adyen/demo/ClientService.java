@@ -168,8 +168,8 @@ public class ClientService {
         Map<String, String> test =
                 restTemplate.postForObject(resourceUrl, request, HashMap.class, pluginOptions);
 
-        String sessionData = test.get(SESSION_DATA);
-        String sessionId = test.get(SESSION_ID);
+        String sessionData = test.get(SESSION_DATA).trim();
+        String sessionId = test.get(SESSION_ID).trim();
 
         SessionModel sessionModel = new SessionModel();
         sessionModel.setId(sessionId);
