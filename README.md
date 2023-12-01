@@ -13,7 +13,7 @@ Prerequisites
 Set up
 ------
 
-1. Obtain Adyen credentials as explained [here](https://github.com/killbill/killbill-adyen-plugin/tree/new-adyen-staging#configuration) and set the corresponding values in the `application.properties` file.
+1. Obtain Adyen credentials as explained [here]([https://github.com/killbill/killbill-adyen-plugin/tree/new-adyen-staging#configuration](https://github.com/killbill/killbill-adyen-plugin#configuration)) and set the corresponding values in the `application.properties` file.
 2. Obtain a client key as explained [here](https://docs.adyen.com/development-resources/client-side-authentication#get-your-client-key) and set it in the `application.properties` file.
 3. Add the demo URL (`http://localhost:8084/`) as an allowed origin in Adyen as explained [here](https://docs.adyen.com/development-resources/client-side-authentication#manage-allowed-origins).
 
